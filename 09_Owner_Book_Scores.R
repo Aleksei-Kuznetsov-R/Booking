@@ -176,16 +176,19 @@ for (o in 1:length(hotel_address)) {
   date <- as_tibble(paste0(str_sub(current_day,-2,-1),".",
                            str_sub(current_day,-4,-3),".",
                            str_sub(current_day,1,4)))
+  
 #Merge all data into one vector
   Results <- bind_cols(date,hotel_name,Score, Reviews,Staff,Facilities,Cleanliness,Comfort,ValueForMoney,Location,FreeWiFi)
+  
 #Then add it all to table 
   Booking <- rbind.fill(Booking, Results)
 }
 
 #PART5 - DATA CLEANING ----
-
+#I prefer to change the names of variables for different blocks, because when errors occur, it is easier to find the stage where the error occurred
 Hotel_scores <- Booking
 
+#Rename all columns to their normal names
 colnames(Hotel_scores)[1]  <- "Date"
 colnames(Hotel_scores)[2]  <- "Property"
 colnames(Hotel_scores)[3]  <- "Score"
@@ -199,7 +202,8 @@ colnames(Hotel_scores)[10] <- "Location"
 colnames(Hotel_scores)[11] <- "Free.WiFi"
 
 #*Property ----
-
+                         
+#Replacing the addresses we used with hotel names
 Hotel_scores[Hotel_scores == "https://www.booking.com/hotel/uz/samarkand-regency-amir-temur-samarkand.en-gb.html#tab-main"] <- "5.1. Regency" #Regency
 Hotel_scores[Hotel_scores == "https://www.booking.com/hotel/uz/savitsky-plaza-samarkand.en-gb.html"]                        <- "4.1. Savitsky" #Savitsky
 Hotel_scores[Hotel_scores == "https://www.booking.com/hotel/uz/silk-road-by-minyoun-samarkand.en-gb.html"]                  <- "5.2. Silk Road" #Minyoun
@@ -210,23 +214,32 @@ Hotel_scores[Hotel_scores == "https://www.booking.com/hotel/uz/wellness-park-iii
 Hotel_scores[Hotel_scores == "https://www.booking.com/hotel/uz/wellness-park-iv-samarkand.en-gb.html"]                      <- "3.4. Turon" #Wellness IV
 
 #*Overall Score ----
-
+                         
+#Making a slice from the previously collected table for manipulation and substitutions
 Scores_format = subset(Hotel_scores, select = c(Date,Property,Score))
 
+#Replace the comma with a period. This depends on your regional settings
 Scores_format$Score <- gsub(',','.',Scores_format$Score)  
+                         
+#I use the trim function a lot for insurance purposes. It's not necessary, but it can sometimes save a lot of time.
 Scores_format$Score <- str_trim(Scores_format$Score)
+                         
+#Add a column describing what is written on the line
 Scores_format$Desc = "Overall Score"
+                         
+#Rename the 3rd column so that the name will be the same when stitching all tables together                        
 colnames(Scores_format)[3]  <- "Total"
-#*Overall Score ----
+                         
+#*Reviews ----
 
 Reviews_format = subset(Hotel_scores, select = c(Date,Property,Reviews))
 
+#As the number of reviews changes, Booking changes the word review and reviews. 
+#We need to remove them, so first remove reviews and then reviews, otherwise you will be left with the letter s
 Reviews_format$Reviews <- gsub(' reviews','',Reviews_format$Reviews)  
 Reviews_format$Reviews <- gsub(' review','',Reviews_format$Reviews)  
-Reviews_format$Reviews <- gsub(' îòçûâà','',Reviews_format$Reviews)
-Reviews_format$Reviews <- gsub(' îòçûâîâ','',Reviews_format$Reviews) 
-Reviews_format$Reviews <- gsub(' îòçûâ','',Reviews_format$Reviews) 
-Reviews_format$Reviews <- gsub('·','',Reviews_format$Reviews)
+
+Reviews_format$Reviews <- gsub('·','',Reviews_format$Reviews)                         
 Reviews_format$Reviews <- str_trim(Reviews_format$Reviews)
 Reviews_format$Desc = "Overall Reviews"
 colnames(Reviews_format)[3]  <- "Total"
@@ -294,10 +307,16 @@ Free_WiFi_format$Free.WiFi <- str_trim(Free_WiFi_format$Free.WiFi)
 colnames(Free_WiFi_format)[3]  <- "Total"
 Free_WiFi_format$Desc = "Free WiFi"
 Free_WiFi_format$Total <- as.numeric(Free_WiFi_format$Total)
+                         
 #*Closing Browser ----
+#A separate block that can be written above or below, but the main thing is not to forget about it, because you have a browser session open, and it should be closed                       
 remDr$closeWindow()
 rD <- rD$server$stop()
+                         
 #Booking.com CSV template ----
+#This block was added so that the data can be saved in a certain format in csv, because you never know what else you will need the data for.
+#So at the end, you have a report sent to telegram to the shareholders and you have a csv file for that date and you can use it for other purposes.
+                         
 Hotel_scores = NULL
 Hotel_scores <- rbind.fill(Hotel_scores,Scores_format,Reviews_format,Staff_format,
                            Facilities_format,Cleanliness_format,Comfort_format,Value_for_money_format,
@@ -384,14 +403,12 @@ Hotel_scores$Desc[Hotel_scores$Desc == "47"] <- "Free WiFi"       #Free WiFi
 colnames(Hotel_scores)[1]  <- "________________" 
 colnames(Hotel_scores)[2]  <- "____________" 
 
-
 #SEND MESSAGE ----
-
+#When the table is completely ready to be sent, it needs to be run through our function that we wrote at the very beginning in PART2 part
 tg_table <- to_tg_table(head(Hotel_scores, 100) )
 
-bot$sendMessage(chat_id = "-1001898659039",text = "Booking.com Scores", parse_mode = "Markdown")
-bot$sendMessage(chat_id = "-1001898659039",text = tg_table, parse_mode = "Markdown")
+#Write a message to be sent to the chat room in the form of the report name and the table itself
+bot$sendMessage(chat_id = "-1000000000000",text = "Booking.com Scores", parse_mode = "Markdown")
+bot$sendMessage(chat_id = "-1000000000000",text = tg_table, parse_mode = "Markdown")
 
-# 5259026233 AK chat id
-#-1001898659039 STC-Analytics Insight chat id
 close(log_con)
