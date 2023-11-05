@@ -21,7 +21,7 @@ This GitHub repository contains a web scraping project designed to extract data 
 4. Run the scraping script to collect data.
 5. Store and analyze the data as needed for your project.
 
-Please note that web scraping may be subject to legal and ethical considerations, and you should respect Booking.com's terms of service and robots.txt file when using this project.
+Please note that web scraping may be subject to legal and ethical considerations, and you should respect Booking.com's terms of service when using this project.
 
 **Contributing:**
 If you'd like to contribute to this project, feel free to fork the repository and submit pull requests with your improvements or additional features.
