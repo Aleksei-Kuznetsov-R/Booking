@@ -1,6 +1,6 @@
 #PART1 - LIBRARY ----
 Load_Libraries <- c("rvest", "RSelenium","tidyverse","sys","dplyr","urltools","stringr","data.table",
-                    "plyr","telegram.bot","tidyr","purrr","DescTools","vroom","httr","expss","KeyboardSimulator","netstat","RDCOMClient")
+                    "plyr","telegram.bot","tidyr","purrr","DescTools","vroom","httr","expss","netstat","RDCOMClient")
 lapply(Load_Libraries, require, character.only = TRUE)
 
 #PART2 - FUNCTIONS ----
