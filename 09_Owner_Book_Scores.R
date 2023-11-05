@@ -1,29 +1,27 @@
-#LIBRARY ----
+#PART1 - LIBRARY ----
 Load_Libraries <- c("rvest", "RSelenium","tidyverse","sys","dplyr","urltools","stringr","data.table",
                     "plyr","telegram.bot","tidyr","purrr","DescTools","vroom","httr","expss","KeyboardSimulator","netstat","RDCOMClient")
 lapply(Load_Libraries, require, character.only = TRUE)
 
-#FUNCTIONS ----
+#PART2 - FUNCTIONS ----
+#This feature is designed to allow you to build a beautiful table in Telegram. 
+#Telegram does not accept any R table types, so you need to use the custom function below to get a table 
 
-# функция для перевода data.frame в telegram таблицу 
+# function to translate data.frame to telegram table
 to_tg_table <- function( table, align = NULL, indents = 3, parse_mode = 'Markdown' ) {
   
-  # если выравнивание не задано то выравниваем по левому краю
+  # if alignment is not set, then align to the left edge
   if ( is.null(align) ) {
-    
     col_num <- length(table)
     align   <- str_c( rep('l', col_num), collapse = '' )
-    
   }
   
-  # проверяем правильно ли заданно выравнивание
+  # check if the alignment is correct
   if ( length(table) != nchar(align) ) {
-    
     align <- NULL
-    
   }
   
-  # новое выравнивание столбцов 
+  # new column alignment 
   side <- sapply(1:nchar(align), 
                  function(x) { 
                    letter <- substr(align, x, x)
@@ -35,57 +33,57 @@ to_tg_table <- function( table, align = NULL, indents = 3, parse_mode = 'Markdow
                    )
                  })
   
-  # сохраняем имена
+  # save the names
   t_names      <- names(table)
   
-  # вычисляем ширину столбцов
+  # calculate column widths
   names_length <- sapply(t_names, nchar) 
   value_length <- sapply(table, function(x) max(nchar(as.character(x))))
   max_length   <- ifelse(value_length > names_length, value_length, names_length)
   
-  # подгоняем размер имён столбцов под их ширину + указанное в indents к-во пробелов 
+  # adjust the size of column names to their width + the number of spaces specified in indents 
   t_names <- mapply(str_pad, 
                     string = t_names, 
                     width  = max_length + indents, 
                     side   = side)
   
-  # объединяем названия столбцов
+  # merge column names
   str_names <- str_c(t_names, collapse = '')
   
-  # аргументы для фукнции str_pad
+  # arguments for the str_pad function
   rules <- list(string = table, width = max_length + indents, side = side)
   
-  # поочереди переводим каждый столбец к нужному виду
+  # translate each column one by one to the desired form
   t_str <-   pmap_df( rules, str_pad )%>%
     unite("data", everything(), remove = TRUE, sep = '') %>%
     unlist(data) %>%
     str_c(collapse = '\n') 
   
-  # если таблица занимает более 4096 символов обрезаем её
+  # If the table is more than 4096 characters long, trim it off
   if ( nchar(t_str) >= 4021 ) {
-    
-    warning('Таблица составляет более 4096 символов!')
+    warning('The table is over 4096 characters long!')
     t_str <- substr(t_str, 1, 4021)
-    
   }
   
-  # символы выделения блока кода согласно выбранной разметке
+  # code block selection characters according to the selected layout
   code_block <- switch(parse_mode, 
                        'Markdown' = c('```', '```'),
                        'HTML' = c('<code>', '</code>'))
   
-  # переводим в code
+  # translate into code
   res <- str_c(code_block[1], str_names, t_str, code_block[2], sep = '\n')
   
   return(res)
 }
 
-#METADATA ----
+#PART3 - METADATA ----
+#Determine today's date - 1 day for our report
 current_day <- format(Sys.Date() - 1, format = "%Y%m%d")
 
-setwd('E:/DA/02_Scripts/09_Owners')
-log_con <- file(paste0("E:/DA/02_Scripts/09_Owners/LOG/Booking/",current_day,"_LOG.txt"), open = "a")
-
+#Address for generating log files
+log_con <- file(paste0("C:/Documents/LOGS/Booking/",current_day,"_LOG.txt"), open = "a")
+                         
+#Make a list of page addresses that the script needs to pass through
 hotel_address <- c("https://www.booking.com/hotel/uz/samarkand-regency-amir-temur-samarkand.en-gb.html#tab-main",
                    "https://www.booking.com/hotel/uz/savitsky-plaza-samarkand.en-gb.html",
                    "https://www.booking.com/hotel/uz/silk-road-by-minyoun-samarkand.en-gb.html",
@@ -95,17 +93,26 @@ hotel_address <- c("https://www.booking.com/hotel/uz/samarkand-regency-amir-temu
                    "https://www.booking.com/hotel/uz/wellness-park-iii-samarkand.en-gb.html",
                    "https://www.booking.com/hotel/uz/wellness-park-iv-samarkand.en-gb.html")
 
-bot = Bot(token = bot_token('stc_da_bot'))
+#Specify data for telegram bot
+bot = Bot(token = bot_token('WS_bot'))
 updates = bot$getUpdates()
 
-#PARSE ----
+#PART4 - PARSE ----
+#I tried different parsing methods, but came to the conclusion that the most stable option is to use the RSelenium package.
+
+#Call the browser session. 
+#Use netstat::free_port() instead of specifying a specific port, because there are cases when the port is busy and the script does not work. 
+#Also in case of errors, when you need to restart the script, the port will be busy, which requires a reboot of R
 rD  <- rsDriver(browser = "firefox", netstat::free_port(), verbose = F,chromever = NULL)
 remDr <- rD[["client"]]
 remDr$open() 
+
 Booking = NULL
 
-for (o in 1:length(hotel_address)) {
+#Create a loop that will perform the same actions for all the pages we have previously specified
+for (o in 1:length(hotel_address)) { 
   
+#Inside the loop we need to specify that we are substituting the website address as a new variable
   url <- paste0(hotel_address[o])
   remDr$navigate(url)
   
@@ -115,6 +122,7 @@ for (o in 1:length(hotel_address)) {
   html <- remDr$getPageSource()[[1]]
   html <- read_html(html)
   
+#Next, we create variables on all the data we need so that they are collected one by one.
   Score <- html %>% 
     html_elements(".daaa8ff09f > div:nth-child(1) > div:nth-child(1)") %>% 
     html_text() %>% 
@@ -159,21 +167,22 @@ for (o in 1:length(hotel_address)) {
     html_elements("div.bui-spacer--larger:nth-child(3) > div:nth-child(1) > div:nth-child(2) > div:nth-child(7) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)") %>% 
     html_text() %>% 
     as_tibble(FreeWiFi,validate = NULL, .name_repair = "unique") 
-  
+
+#In order to determine after the gathering what data belong to what, we add a parameter - the address of the page from which they are gathered. 
+#This also helps to understand what happened and where in case of errors
   hotel_name <- as_tibble(hotel_address[o])
-  
+
+#We add the date of data gathering, but in the format the shareholders want to see it in
   date <- as_tibble(paste0(str_sub(current_day,-2,-1),".",
                            str_sub(current_day,-4,-3),".",
                            str_sub(current_day,1,4)))
-  
+#Merge all data into one vector
   Results <- bind_cols(date,hotel_name,Score, Reviews,Staff,Facilities,Cleanliness,Comfort,ValueForMoney,Location,FreeWiFi)
-  
+#Then add it all to table 
   Booking <- rbind.fill(Booking, Results)
-  
 }
 
-
-#DATA CLEANING ----
+#PART5 - DATA CLEANING ----
 
 Hotel_scores <- Booking
 
@@ -214,10 +223,10 @@ Reviews_format = subset(Hotel_scores, select = c(Date,Property,Reviews))
 
 Reviews_format$Reviews <- gsub(' reviews','',Reviews_format$Reviews)  
 Reviews_format$Reviews <- gsub(' review','',Reviews_format$Reviews)  
-Reviews_format$Reviews <- gsub(' отзыва','',Reviews_format$Reviews)
-Reviews_format$Reviews <- gsub(' отзывов','',Reviews_format$Reviews) 
-Reviews_format$Reviews <- gsub(' отзыв','',Reviews_format$Reviews) 
-Reviews_format$Reviews <- gsub('·','',Reviews_format$Reviews)
+Reviews_format$Reviews <- gsub(' Г®ГІГ§Г»ГўГ ','',Reviews_format$Reviews)
+Reviews_format$Reviews <- gsub(' Г®ГІГ§Г»ГўГ®Гў','',Reviews_format$Reviews) 
+Reviews_format$Reviews <- gsub(' Г®ГІГ§Г»Гў','',Reviews_format$Reviews) 
+Reviews_format$Reviews <- gsub('В·','',Reviews_format$Reviews)
 Reviews_format$Reviews <- str_trim(Reviews_format$Reviews)
 Reviews_format$Desc = "Overall Reviews"
 colnames(Reviews_format)[3]  <- "Total"
@@ -305,7 +314,7 @@ Hotel_scores$Property[Hotel_scores$Property == "3.2. Sogd"]      <- "16" #Wellne
 Hotel_scores$Property[Hotel_scores$Property == "3.3. Bactria"]   <- "17" #Wellness III
 Hotel_scores$Property[Hotel_scores$Property == "3.4. Turon"]     <- "18" #Wellness IV
 
-Hotel_scores$Desc[Hotel_scores$Desc == "Overall Score"]   <- "31" #Результат
+Hotel_scores$Desc[Hotel_scores$Desc == "Overall Score"]   <- "31" #ГђГҐГ§ГіГ«ГјГІГ ГІ
 Hotel_scores$Desc[Hotel_scores$Desc == "Overall Reviews"] <- "40" #Overall Reviews
 Hotel_scores$Desc[Hotel_scores$Desc == "Comfort"]         <- "41" #Comfort
 Hotel_scores$Desc[Hotel_scores$Desc == "Cleanliness"]     <- "42" #Cleanliness
@@ -357,19 +366,19 @@ Hotel_scores <- Hotel_scores[order(Hotel_scores$M),]
 Hotel_scores <- Hotel_scores[-1]
 Hotel_scores <- Hotel_scores[-3]
 
-Hotel_scores$Desc[Hotel_scores$Desc == "0"]  <- "Дата отчета - "
+Hotel_scores$Desc[Hotel_scores$Desc == "0"]  <- "Г„Г ГІГ  Г®ГІГ·ГҐГІГ  - "
 Hotel_scores$Desc[Hotel_scores$Desc == "1"]  <- ""
 Hotel_scores$Desc[Hotel_scores$Desc == "10"] <- ""
 Hotel_scores$Desc[Hotel_scores$Desc == "30"] <- "----------------"
 
-Hotel_scores$Desc[Hotel_scores$Desc == "31"] <- "Результат:"      #Exceptional
-Hotel_scores$Desc[Hotel_scores$Desc == "40"] <- "Кол-во отзывов:" #Overall Reviews
-Hotel_scores$Desc[Hotel_scores$Desc == "41"] <- "Удобство"        #Comfort
-Hotel_scores$Desc[Hotel_scores$Desc == "42"] <- "Чистота"         #Cleanliness
-Hotel_scores$Desc[Hotel_scores$Desc == "43"] <- "Цена/Качество"   #Value for money
-Hotel_scores$Desc[Hotel_scores$Desc == "44"] <- "Персонал"        #Staff
-Hotel_scores$Desc[Hotel_scores$Desc == "45"] <- "Объект"          #Facilities
-Hotel_scores$Desc[Hotel_scores$Desc == "46"] <- "Расположение"    #Location
+Hotel_scores$Desc[Hotel_scores$Desc == "31"] <- "ГђГҐГ§ГіГ«ГјГІГ ГІ:"      #Exceptional
+Hotel_scores$Desc[Hotel_scores$Desc == "40"] <- "ГЉГ®Г«-ГўГ® Г®ГІГ§Г»ГўГ®Гў:" #Overall Reviews
+Hotel_scores$Desc[Hotel_scores$Desc == "41"] <- "Г“Г¤Г®ГЎГ±ГІГўГ®"        #Comfort
+Hotel_scores$Desc[Hotel_scores$Desc == "42"] <- "Г—ГЁГ±ГІГ®ГІГ "         #Cleanliness
+Hotel_scores$Desc[Hotel_scores$Desc == "43"] <- "Г–ГҐГ­Г /ГЉГ Г·ГҐГ±ГІГўГ®"   #Value for money
+Hotel_scores$Desc[Hotel_scores$Desc == "44"] <- "ГЏГҐГ°Г±Г®Г­Г Г«"        #Staff
+Hotel_scores$Desc[Hotel_scores$Desc == "45"] <- "ГЋГЎГєГҐГЄГІ"          #Facilities
+Hotel_scores$Desc[Hotel_scores$Desc == "46"] <- "ГђГ Г±ГЇГ®Г«Г®Г¦ГҐГ­ГЁГҐ"    #Location
 Hotel_scores$Desc[Hotel_scores$Desc == "47"] <- "Free WiFi"       #Free WiFi
 
 colnames(Hotel_scores)[1]  <- "________________" 
