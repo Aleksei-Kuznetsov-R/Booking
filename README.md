@@ -5,6 +5,7 @@ This GitHub repository contains a web scraping project designed to extract data 
 **Key Features:**
 
 **Scraping Data**: The project includes R script that leverage web scraping libraries such as RSelenium and rvest to gather data from Booking.com pages.
+
 **Data Fields:** Extracted data may include hotel names, ratings, prices, location details, room types, availability, and customer reviews.
 **Data Storage:** You can choose to store the scraped data in various formats like JSON, CSV, or a database, depending on your requirements.
 **Customization:** The project is designed to be customizable, allowing users to specify search criteria, locations, and other parameters to focus on specific data extraction.
