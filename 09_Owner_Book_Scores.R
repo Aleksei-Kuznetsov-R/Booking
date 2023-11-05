@@ -323,28 +323,31 @@ Hotel_scores <- rbind.fill(Hotel_scores,Scores_format,Reviews_format,Staff_forma
                            Location_format,Free_WiFi_format)
 
 Hotel_scores = Hotel_scores[,c("Property","Desc","Total")] 
+                         
+#The encoding block is designed to allow you to put numbers in ascending order to make the table always in the same form. 
+#If you need to make changes to the appearance, for example, to put something above or below, you can simply replace the digits in the data
+Hotel_scores$Property[Hotel_scores$Property == "5.1. Regency"]   <- "11" 
+Hotel_scores$Property[Hotel_scores$Property == "4.1. Savitsky"]  <- "12" 
+Hotel_scores$Property[Hotel_scores$Property == "5.2. Silk Road"] <- "13" 
+Hotel_scores$Property[Hotel_scores$Property == "4.2. Lia"]       <- "14" 
+Hotel_scores$Property[Hotel_scores$Property == "3.1. Afrosiyob"] <- "15" 
+Hotel_scores$Property[Hotel_scores$Property == "3.2. Sogd"]      <- "16" 
+Hotel_scores$Property[Hotel_scores$Property == "3.3. Bactria"]   <- "17" 
+Hotel_scores$Property[Hotel_scores$Property == "3.4. Turon"]     <- "18" 
 
-Hotel_scores$Property[Hotel_scores$Property == "5.1. Regency"]   <- "11" #Regency
-Hotel_scores$Property[Hotel_scores$Property == "4.1. Savitsky"]  <- "12" #Savitsky
-Hotel_scores$Property[Hotel_scores$Property == "5.2. Silk Road"] <- "13" #Minyoun
-Hotel_scores$Property[Hotel_scores$Property == "4.2. Lia"]       <- "14" #Lia
-Hotel_scores$Property[Hotel_scores$Property == "3.1. Afrosiyob"] <- "15" #Wellness I
-Hotel_scores$Property[Hotel_scores$Property == "3.2. Sogd"]      <- "16" #Wellness II
-Hotel_scores$Property[Hotel_scores$Property == "3.3. Bactria"]   <- "17" #Wellness III
-Hotel_scores$Property[Hotel_scores$Property == "3.4. Turon"]     <- "18" #Wellness IV
-
-Hotel_scores$Desc[Hotel_scores$Desc == "Overall Score"]   <- "31" #Ðåçóëüòàò
-Hotel_scores$Desc[Hotel_scores$Desc == "Overall Reviews"] <- "40" #Overall Reviews
-Hotel_scores$Desc[Hotel_scores$Desc == "Comfort"]         <- "41" #Comfort
-Hotel_scores$Desc[Hotel_scores$Desc == "Cleanliness"]     <- "42" #Cleanliness
-Hotel_scores$Desc[Hotel_scores$Desc == "Value for money"] <- "43" #Value for money
-Hotel_scores$Desc[Hotel_scores$Desc == "Staff"]           <- "44" #Staff
-Hotel_scores$Desc[Hotel_scores$Desc == "Facilities"]      <- "45" #Facilities
-Hotel_scores$Desc[Hotel_scores$Desc == "Location"]        <- "46" #Location
-Hotel_scores$Desc[Hotel_scores$Desc == "Free WiFi"]       <- "47" #Free WiFi
+Hotel_scores$Desc[Hotel_scores$Desc == "Overall Score"]   <- "31" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Overall Reviews"] <- "40" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Comfort"]         <- "41" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Cleanliness"]     <- "42" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Value for money"] <- "43" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Staff"]           <- "44" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Facilities"]      <- "45" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Location"]        <- "46" 
+Hotel_scores$Desc[Hotel_scores$Desc == "Free WiFi"]       <- "47" 
 
 Hotel_scores$Total[is.na(Hotel_scores$Total) ] <- "0.0"
 
+#This block is needed to bring all grades to the n\10 format. Since the maximum score is 10 points.
 Only_scores <- Hotel_scores %>%
   filter(Hotel_scores$Desc != "40") #Overall Reviews
 Only_scores$Total <- paste0(format(Only_scores$Total, trim = TRUE), "/10")
@@ -360,6 +363,7 @@ Hotel_scores[nrow(Hotel_scores) + 1,] <- c(0, 0, paste0(str_sub(current_day,-2,-
                                                         str_sub(current_day,-4,-3),".",
                                                         str_sub(current_day,1,4))) #Report date
 
+#Add blank lines to divide the table into blocks to make it look more decent and readable
 Hotel_scores[nrow(Hotel_scores) + 1,] <- c(11, 30, "Regency" )      #Blank
 Hotel_scores[nrow(Hotel_scores) + 1,] <- c(12, 30, "Savitsky" )     #Blank
 Hotel_scores[nrow(Hotel_scores) + 1,] <- c(13, 30, "Minyoun" )      #Blank
@@ -378,28 +382,33 @@ Hotel_scores[nrow(Hotel_scores) + 1,] <- c(16, 10, "" ) #Blank
 Hotel_scores[nrow(Hotel_scores) + 1,] <- c(17, 10, "" ) #Blank
 Hotel_scores[nrow(Hotel_scores) + 1,] <- c(18, 10, "" ) #Blank
 
+#Merge the 2 columns into one column with a "-" separator
 Hotel_scores$M <- str_c(Hotel_scores$Property,"-",Hotel_scores$Desc)
 
+#Next, we do the sorting
 Hotel_scores <- Hotel_scores[order(Hotel_scores$M),]
 
 Hotel_scores <- Hotel_scores[-1]
 Hotel_scores <- Hotel_scores[-3]
 
-Hotel_scores$Desc[Hotel_scores$Desc == "0"]  <- "Äàòà îò÷åòà - "
+#Add a few more fields for the beauty of the report
+Hotel_scores$Desc[Hotel_scores$Desc == "0"]  <- "Report Date - "
 Hotel_scores$Desc[Hotel_scores$Desc == "1"]  <- ""
 Hotel_scores$Desc[Hotel_scores$Desc == "10"] <- ""
 Hotel_scores$Desc[Hotel_scores$Desc == "30"] <- "----------------"
 
-Hotel_scores$Desc[Hotel_scores$Desc == "31"] <- "Ðåçóëüòàò:"      #Exceptional
-Hotel_scores$Desc[Hotel_scores$Desc == "40"] <- "Êîë-âî îòçûâîâ:" #Overall Reviews
-Hotel_scores$Desc[Hotel_scores$Desc == "41"] <- "Óäîáñòâî"        #Comfort
-Hotel_scores$Desc[Hotel_scores$Desc == "42"] <- "×èñòîòà"         #Cleanliness
-Hotel_scores$Desc[Hotel_scores$Desc == "43"] <- "Öåíà/Êà÷åñòâî"   #Value for money
-Hotel_scores$Desc[Hotel_scores$Desc == "44"] <- "Ïåðñîíàë"        #Staff
-Hotel_scores$Desc[Hotel_scores$Desc == "45"] <- "Îáúåêò"          #Facilities
-Hotel_scores$Desc[Hotel_scores$Desc == "46"] <- "Ðàñïîëîæåíèå"    #Location
-Hotel_scores$Desc[Hotel_scores$Desc == "47"] <- "Free WiFi"       #Free WiFi
+#We replace the encoding with normal names, since the sorting has already taken place
+Hotel_scores$Desc[Hotel_scores$Desc == "31"] <- "Result:"      
+Hotel_scores$Desc[Hotel_scores$Desc == "40"] <- "Overall Reviews:" 
+Hotel_scores$Desc[Hotel_scores$Desc == "41"] <- "Comfort"
+Hotel_scores$Desc[Hotel_scores$Desc == "42"] <- "Cleanliness"
+Hotel_scores$Desc[Hotel_scores$Desc == "43"] <- "Value for money"
+Hotel_scores$Desc[Hotel_scores$Desc == "44"] <- "Staff"
+Hotel_scores$Desc[Hotel_scores$Desc == "45"] <- "Facilities"
+Hotel_scores$Desc[Hotel_scores$Desc == "46"] <- "Location"
+Hotel_scores$Desc[Hotel_scores$Desc == "47"] <- "Free WiFi"
 
+#Rename the column names to make the beginning of the report look brighter
 colnames(Hotel_scores)[1]  <- "________________" 
 colnames(Hotel_scores)[2]  <- "____________" 
 
