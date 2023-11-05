@@ -12,7 +12,7 @@ This GitHub repository contains a web scraping project designed to extract data 
 
 **Customization:** The project is designed to be customizable, allowing users to specify search criteria, locations, and other parameters to focus on specific data extraction.
 
-**Visualization** The request was to generate quick reports to a Telegram channel where management will be able to see a daily overview in the morning. 
+**Visualization:** The request was to generate quick reports to a Telegram channel where management will be able to see a daily overview in the morning. Package telegram.bot was used for this purpose
 
 **Usage:**
 1. Clone this repository to your local machine.
